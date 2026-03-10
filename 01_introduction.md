@@ -665,16 +665,4 @@ HEALTHCHECK CMD curl --fail http://localhost || exit 1
 ```
 
 ---
-
-# 21. Advanced Docker Topics (DevOps Level)
-
-* Multi-stage builds
-* Docker Swarm
-* Docker Registry
-* Image scanning
-* Container security
-* Rootless containers
-* BuildKit
-* Docker networking deep dive
-
 ---
