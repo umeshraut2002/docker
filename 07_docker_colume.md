@@ -27,3 +27,1037 @@ Volumes are also more efficient than bind mounts (another Docker storage option)
 A Bind Mount is a Docker storage mechanism that allows you to mount a specific file or directory from the host machine into a container.
 
 --- 
+
+
+
+---
+
+# Docker Volumes & File Operation
+
+---
+
+# 1. Volume Mount Syntax (Two Ways)
+
+### Old Syntax (`-v`)
+
+```bash
+docker run -d -v myvolume:/data nginx
+```
+
+Structure
+
+```
+-v volume_name:container_path
+```
+
+Example
+
+```bash
+docker run -d -v mydata:/usr/share/nginx/html nginx
+```
+
+---
+
+### Modern Syntax (`--mount`) – Recommended in Production
+
+```bash
+docker run -d \
+--mount source=myvolume,target=/data \
+nginx
+```
+
+Structure
+
+```
+--mount type=volume,source=volume_name,target=container_path
+```
+
+Example
+
+```bash
+docker run -d \
+--mount type=volume,source=myvol,target=/app \
+nginx
+```
+
+---
+
+# 2. Inspect Container Mount Information
+
+To see mounted volumes in a container:
+
+```bash
+docker inspect container_id
+```
+
+Filter mount information:
+
+```bash
+docker inspect container_id | grep Mounts
+```
+
+Example output:
+
+```
+"Mounts": [
+  {
+    "Type": "volume",
+    "Name": "myvolume",
+    "Destination": "/data"
+  }
+]
+```
+
+---
+
+# 3. Where Docker Volumes Are Stored
+
+On Linux host:
+
+```
+/var/lib/docker/volumes/
+```
+
+Example check:
+
+```bash
+sudo ls /var/lib/docker/volumes
+```
+
+Check inside volume:
+
+```bash
+sudo ls /var/lib/docker/volumes/myvolume/_data
+```
+
+---
+
+# 4. Copy Files Between Containers
+
+Sometimes DevOps engineers copy files between containers.
+
+Example:
+
+Container1 → Container2
+
+Step 1: Copy from container to host
+
+```bash
+docker cp container1:/app/config.yml .
+```
+
+Step 2: Copy host to container2
+
+```bash
+docker cp config.yml container2:/app/
+```
+
+---
+
+# 5. Backup Docker Volume (Important DevOps Operation)
+
+Real production systems require **backup of volumes**.
+
+### Backup Volume
+
+```bash
+docker run --rm \
+-v myvolume:/volume \
+-v $(pwd):/backup \
+ubuntu \
+tar cvf /backup/backup.tar /volume
+```
+
+Explanation
+
+```
+myvolume → mounted to /volume
+backup folder → host directory
+tar → create backup archive
+```
+
+---
+
+### Restore Volume
+
+```bash
+docker run --rm \
+-v myvolume:/volume \
+-v $(pwd):/backup \
+ubuntu \
+tar xvf /backup/backup.tar
+```
+
+---
+
+# 6. Share Volume Between Containers
+
+Multiple containers can share the same volume.
+
+Example:
+
+Container 1
+
+```bash
+docker run -d \
+--name app1 \
+-v sharedvol:/data \
+ubuntu
+```
+
+Container 2
+
+```bash
+docker run -d \
+--name app2 \
+-v sharedvol:/data \
+ubuntu
+```
+
+Both containers access the same data.
+
+---
+
+# 7. Read-Only Volume Mount
+
+Sometimes containers should **only read data**.
+
+Example:
+
+```bash
+docker run -d \
+-v mydata:/app:ro \
+nginx
+```
+
+Meaning
+
+```
+ro = read only
+```
+
+Container cannot modify files.
+
+---
+
+# 8. Bind Mount With Absolute Path
+
+Example
+
+```bash
+docker run -d \
+-v /home/ubuntu/project:/app \
+nginx
+```
+
+Meaning
+
+```
+Host → /home/ubuntu/project
+Container → /app
+```
+
+---
+
+# 9. Use Environment Variable in Mount
+
+Example:
+
+```bash
+docker run -d \
+-v $HOME/app:/app \
+nginx
+```
+
+---
+
+# 10. Named Volume with Multiple Paths
+
+Example:
+
+```bash
+docker run -d \
+-v webdata:/usr/share/nginx/html \
+-v logs:/var/log/nginx \
+nginx
+```
+
+This creates:
+
+```
+webdata volume
+logs volume
+```
+
+---
+
+# 11. Delete Container But Keep Volume
+
+Example:
+
+```bash
+docker rm container_id
+```
+
+Volume still exists.
+
+Check:
+
+```bash
+docker volume ls
+```
+
+---
+
+# 12. Remove Container With Volume
+
+If volume is attached with container:
+
+```bash
+docker rm -v container_id
+```
+
+Removes container + volume.
+
+---
+
+# 13. Clean Docker System (DevOps Maintenance)
+
+Remove unused containers
+
+```bash
+docker container prune
+```
+
+Remove unused images
+
+```bash
+docker image prune
+```
+
+Remove unused volumes
+
+```bash
+docker volume prune
+```
+
+Clean everything
+
+```bash
+docker system prune
+```
+
+Full cleanup
+
+```bash
+docker system prune -a
+```
+
+---
+
+# 14. Debugging Volume Problems
+
+Common problem: **volume not mounting**
+
+Check mounts:
+
+```bash
+docker inspect container_id
+```
+
+Check permissions:
+
+```bash
+ls -l /host/folder
+```
+
+Fix permissions:
+
+```bash
+chmod -R 777 folder
+```
+
+---
+
+# 15. DevOps Production Scenario
+
+### Database Container
+
+Example: MySQL container
+
+Without volume:
+
+```bash
+docker run -d mysql
+```
+
+Database data lost when container removed.
+
+Correct way:
+
+```bash
+docker run -d \
+-v mysql-data:/var/lib/mysql \
+mysql
+```
+
+Now database persists.
+
+---
+
+# 16. Docker Exec (Very Important)
+
+Execute command inside running container.
+
+Open shell:
+
+```bash
+docker exec -it container_id bash
+```
+
+Run command:
+
+```bash
+docker exec container_id ls /app
+```
+
+---
+
+# 17. View Container Logs
+
+```bash
+docker logs container_id
+```
+
+Live logs
+
+```bash
+docker logs -f container_id
+```
+
+Last logs
+
+```bash
+docker logs --tail 50 container_id
+```
+
+---
+
+# 18. Stop, Start, Restart Containers
+
+Stop container
+
+```bash
+docker stop container_id
+```
+
+Start container
+
+```bash
+docker start container_id
+```
+
+Restart container
+
+```bash
+docker restart container_id
+```
+
+---
+
+# 19. Remove Containers
+
+Remove container
+
+```bash
+docker rm container_id
+```
+
+Remove all stopped containers
+
+```bash
+docker rm $(docker ps -aq)
+```
+
+Force remove
+
+```bash
+docker rm -f container_id
+```
+
+---
+
+# 20. Real DevOps Workflow Example
+
+Typical deployment flow:
+
+### Step 1 – Pull image
+
+```bash
+docker pull nginx
+```
+
+### Step 2 – Create volume
+
+```bash
+docker volume create webdata
+```
+
+### Step 3 – Run container
+
+```bash
+docker run -d \
+--name webserver \
+-p 80:80 \
+-v webdata:/usr/share/nginx/html \
+nginx
+```
+
+### Step 4 – Copy website files
+
+```bash
+docker cp index.html webserver:/usr/share/nginx/html/
+```
+
+---
+
+# 21. Advanced DevOps Command (Disk Usage)
+
+Check Docker disk usage:
+
+```bash
+docker system df
+```
+
+Output shows:
+
+```
+Images
+Containers
+Volumes
+Build cache
+```
+
+---
+
+# 22. Top Container Resource Usage
+
+Check CPU and memory usage.
+
+```bash
+docker stats
+```
+
+Example output:
+
+```
+CONTAINER   CPU %   MEM USAGE
+nginx       0.20%   15MB
+```
+
+---
+
+# 23. Find Files in Container (Advanced)
+
+Search log files
+
+```bash
+find / -name "*.log"
+```
+
+Search config files
+
+```bash
+find / -name "*.conf"
+```
+
+Search nginx config
+
+```bash
+find / -name nginx.conf
+```
+
+---
+
+# 24. DevOps Interview Scenario Question
+
+**Scenario**
+
+Developer says:
+
+> My data disappears when container restarts.
+
+Correct answer:
+
+```
+Use Docker Volume or Bind Mount
+```
+
+Example fix:
+
+```bash
+docker run -d \
+-v appdata:/app/data \
+node-app
+```
+
+---
+
+# 25. Commands DevOps Engineers Use Daily
+
+```
+docker ps
+docker ps -a
+docker images
+docker pull
+docker run
+docker stop
+docker start
+docker rm
+docker logs
+docker exec
+docker cp
+docker volume ls
+docker volume create
+docker system prune
+docker stats
+docker inspect
+```
+
+---
+
+
+---
+
+# 1. What `docker exec` Does
+
+`docker exec` launches a **new process inside a running container**. It does **not** start a new container and does **not** modify the container image.
+
+Basic form:
+
+```bash
+docker exec [OPTIONS] CONTAINER COMMAND [ARG...]
+```
+
+Example:
+
+```bash
+docker exec mycontainer ls /app
+```
+
+This runs `ls /app` inside the running container.
+
+---
+
+# 2. Interactive Shell Access
+
+The most common operational use is **opening a shell**.
+
+### Bash shell
+
+```bash
+docker exec -it mycontainer bash
+```
+
+### If bash is unavailable (common in minimal images)
+
+```bash
+docker exec -it mycontainer sh
+```
+
+Flags explained:
+
+* `-i` → interactive STDIN
+* `-t` → allocate TTY terminal
+
+Without these flags, you cannot interact with the shell.
+
+---
+
+# 3. Running Single Commands
+
+You can run commands without opening a shell.
+
+Example:
+
+Check files:
+
+```bash
+docker exec mycontainer ls /usr/share/nginx/html
+```
+
+Check environment variables:
+
+```bash
+docker exec mycontainer env
+```
+
+Check running processes:
+
+```bash
+docker exec mycontainer ps aux
+```
+
+---
+
+# 4. Running Commands as Different User
+
+Containers sometimes run under a non-root user.
+
+Use `-u` flag:
+
+```bash
+docker exec -u root mycontainer apt update
+```
+
+Example: create file as root
+
+```bash
+docker exec -u root mycontainer touch /root/test.txt
+```
+
+---
+
+# 5. Set Working Directory
+
+Use `-w` to set working directory.
+
+Example:
+
+```bash
+docker exec -w /app mycontainer ls
+```
+
+Equivalent to:
+
+```
+cd /app && ls
+```
+
+---
+
+# 6. Pass Environment Variables
+
+Use `-e` option.
+
+Example:
+
+```bash
+docker exec -e ENV=prod mycontainer printenv ENV
+```
+
+Output:
+
+```
+prod
+```
+
+---
+
+# 7. Detached Execution
+
+Run commands in background with `-d`.
+
+Example:
+
+```bash
+docker exec -d mycontainer touch /tmp/file.txt
+```
+
+Container runs command silently in background.
+
+---
+
+# 8. Execute Scripts Inside Container
+
+Example script:
+
+```
+backup.sh
+```
+
+Run it inside container:
+
+```bash
+docker exec mycontainer bash /app/backup.sh
+```
+
+---
+
+# 9. Debugging Containers Using `docker exec`
+
+One of the most important DevOps uses.
+
+### Check running processes
+
+```bash
+docker exec mycontainer ps aux
+```
+
+### Check disk usage
+
+```bash
+docker exec mycontainer df -h
+```
+
+### Check logs folder
+
+```bash
+docker exec mycontainer ls /var/log
+```
+
+### Check network ports
+
+```bash
+docker exec mycontainer netstat -tulpn
+```
+
+---
+
+# 10. Inspect Application Files
+
+Example for a Node.js container:
+
+```bash
+docker exec mynode ls /usr/src/app
+```
+
+Check configuration:
+
+```bash
+docker exec mynode cat config.json
+```
+
+---
+
+# 11. Edit Files Inside Container
+
+Example using `vi`:
+
+```bash
+docker exec -it mycontainer vi /etc/nginx/nginx.conf
+```
+
+Restart nginx after editing:
+
+```bash
+docker exec mycontainer nginx -s reload
+```
+
+---
+
+# 12. Running Database Commands
+
+Example with MySQL container:
+
+```bash
+docker exec -it mysql-container mysql -u root -p
+```
+
+Example with PostgreSQL:
+
+```bash
+docker exec -it postgres-container psql -U postgres
+```
+
+---
+
+# 13. Running Package Installation
+
+Example:
+
+```bash
+docker exec -it mycontainer apt update
+```
+
+Install tool:
+
+```bash
+docker exec -it mycontainer apt install curl
+```
+
+---
+
+# 14. Real DevOps Scenario
+
+### Problem
+
+Application container returns error **500**.
+
+### Investigation
+
+Step 1 – enter container
+
+```bash
+docker exec -it app-container bash
+```
+
+Step 2 – check logs
+
+```bash
+cat /var/log/app.log
+```
+
+Step 3 – check config
+
+```bash
+cat /app/config.yml
+```
+
+Step 4 – restart service
+
+```bash
+service nginx restart
+```
+
+---
+
+# 15. `docker exec` vs `docker attach`
+
+Important interview question.
+
+| Feature                    | docker exec | docker attach |
+| -------------------------- | ----------- | ------------- |
+| Starts new process         | Yes         | No            |
+| Access container shell     | Yes         | Yes           |
+| Risk of stopping container | No          | Yes           |
+| Recommended                | Yes         | Rare          |
+
+Example attach:
+
+```bash
+docker attach container_id
+```
+
+If you exit incorrectly, container may stop.
+
+---
+
+# 16. Using `docker exec` with Multiple Containers
+
+Example script:
+
+```bash
+docker ps -q | xargs -I {} docker exec {} uptime
+```
+
+This runs `uptime` inside all running containers.
+
+---
+
+# 17. Combining `docker exec` with Logs
+
+Check container logs:
+
+```bash
+docker logs container_id
+```
+
+Then debug inside container:
+
+```bash
+docker exec -it container_id bash
+```
+
+---
+
+# 18. Security Consideration
+
+In production, many organizations **disable root exec access**.
+
+Reason:
+
+* Prevent unauthorized modifications
+* Maintain immutable containers
+
+Best practice:
+
+```
+Fix issue by rebuilding image instead of editing container.
+```
+
+---
+
+# 19. Performance Monitoring
+
+Check memory usage:
+
+```bash
+docker exec mycontainer free -m
+```
+
+Check CPU:
+
+```bash
+docker exec mycontainer top
+```
+
+---
+
+# 20. Practical Practice Lab
+
+Run container:
+
+```bash
+docker run -d --name nginx-test nginx
+```
+
+Practice commands:
+
+```bash
+docker exec nginx-test ls /
+docker exec nginx-test ls /usr/share/nginx/html
+docker exec -it nginx-test bash
+docker exec nginx-test ps aux
+docker exec nginx-test cat /etc/nginx/nginx.conf
+```
+
+---
+
+# 21. Common Mistakes
+
+### Container not running
+
+Error:
+
+```
+Error: Container is not running
+```
+
+Fix:
+
+```
+docker start container_id
+```
+
+---
+
+### Bash not found
+
+Error:
+
+```
+exec: "bash": executable file not found
+```
+
+Fix:
+
+```
+docker exec -it container_id sh
+```
+
+---
+
+# 22. Commands DevOps Engineers Use With `docker exec`
+
+```
+docker exec -it container bash
+docker exec container ls
+docker exec container ps aux
+docker exec container cat file
+docker exec container env
+docker exec -u root container command
+docker exec -w /app container command
+```
+
+---
