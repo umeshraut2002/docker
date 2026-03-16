@@ -1048,7 +1048,7 @@ docker exec -it container_id sh
 
 ---
 
-# 22. Commands DevOps Engineers Use With `docker exec`
+# 22. Commands `docker exec`
 
 ```
 docker exec -it container bash
